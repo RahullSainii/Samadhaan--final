@@ -3,7 +3,7 @@
    =========================== */
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://samadhaan-final-1.onrender.com/api';
 
 // Helper function to get auth token
 function getToken() {
