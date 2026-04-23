@@ -18,7 +18,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Chip,
   Dialog,
   DialogTitle,
@@ -26,6 +25,7 @@ import {
   DialogActions,
   TextField,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import {
   BarChart,
   Bar,
@@ -216,7 +216,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4, p: 2, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 0 10px rgba(0,0,0,0.05)' }}>
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{ boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h6" fontWeight={700} color="primary.main" gutterBottom>Total Complaints</Typography>
@@ -224,7 +224,7 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{ boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h6" fontWeight={700} color="warning.main" gutterBottom>Pending Complaints</Typography>
@@ -232,7 +232,7 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{ boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h6" fontWeight={700} color="success.main" gutterBottom>Resolved Complaints</Typography>
@@ -244,7 +244,7 @@ const AdminDashboard: React.FC = () => {
 
       <Grid container spacing={4} sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 0 10px rgba(0,0,0,0.05)' }}>
         {/* Chart */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, height: '400px', backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Category Distribution</Typography>
             <ResponsiveContainer width="100%" height="90%">
@@ -254,7 +254,7 @@ const AdminDashboard: React.FC = () => {
                 <YAxis allowDecimals={false} />
                 <ChartTooltip />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {chartData.map((entry, index) => (
+                  {chartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -264,7 +264,7 @@ const AdminDashboard: React.FC = () => {
         </Grid>
 
         {/* Recent Activity / Table */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, height: '400px', backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Recent Complaints</Typography>
             <TableContainer sx={{ flexGrow: 1, overflowY: 'auto' }}>

@@ -6,7 +6,6 @@ import {
   Box,
   TextField,
   Button,
-  Grid,
   MenuItem,
   Table,
   TableBody,
@@ -25,6 +24,7 @@ import {
   Switch,
   ListSubheader,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { Search, PlusCircle, RefreshCw, Camera, Upload, X, MapPin, Navigation } from 'lucide-react';
 import api from '../services/api';
 import type { Complaint } from '../types';
@@ -381,7 +381,7 @@ const UserDashboard: React.FC = () => {
 
       <Grid container spacing={4}>
         {/* Submission Form */}
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Paper elevation={2} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PlusCircle size={20} /> Submit New Complaint
@@ -687,7 +687,7 @@ const UserDashboard: React.FC = () => {
         </Grid>
 
         {/* Complaints List */}
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Paper elevation={2} sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h6" fontWeight={600}>
@@ -756,7 +756,7 @@ const UserDashboard: React.FC = () => {
                     </TableRow>
                   ) : filteredComplaints.map((complaint) => (
                     <TableRow key={complaint._id}>
-                      <TableCell fontWeight={600}>{complaint.id}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{complaint.id}</TableCell>
                       <TableCell>{complaint.category}</TableCell>
                       <TableCell>{complaint.location || '—'}</TableCell>
                       <TableCell>
@@ -774,7 +774,7 @@ const UserDashboard: React.FC = () => {
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell variant="body2">{complaint.date}</TableCell>
+                      <TableCell>{complaint.date}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

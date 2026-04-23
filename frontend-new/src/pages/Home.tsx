@@ -4,7 +4,6 @@ import {
   Box,
   Typography,
   Button,
-  Grid,
   Card,
   CardContent,
   Stack,
@@ -15,6 +14,7 @@ import {
   Paper,
   Avatar,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   ArrowRight,
@@ -128,7 +128,7 @@ const Home: React.FC = () => {
         />
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
           <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Chip
                 label="Thapar University • Digital Command Center"
                 sx={{
@@ -250,7 +250,7 @@ const Home: React.FC = () => {
               </Paper>
             </Grid>
 
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Box
                 sx={{
                   background: 'linear-gradient(145deg, #1f2937, #0b1020)',
@@ -276,7 +276,7 @@ const Home: React.FC = () => {
                   }}
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={5}>
+                    <Grid size={{ xs: 12, md: 5 }}>
                       <Box
                         sx={{
                           borderRadius: 3,
@@ -306,7 +306,7 @@ const Home: React.FC = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                    <Grid item xs={12} md={7}>
+                    <Grid size={{ xs: 12, md: 7 }}>
                       <Box
                         sx={{
                           borderRadius: 3,
@@ -335,7 +335,7 @@ const Home: React.FC = () => {
                             { icon: <Layers3 size={18} />, label: 'Live Status' },
                             { icon: <ShieldCheck size={18} />, label: 'Secure Access' },
                           ].map((card) => (
-                            <Grid item xs={6} key={card.label}>
+                            <Grid size={{ xs: 6 }} key={card.label}>
                               <Box
                                 sx={{
                                   borderRadius: 2,
@@ -388,7 +388,7 @@ const Home: React.FC = () => {
               icon: <ShieldCheck size={26} />,
             },
           ].map((feature) => (
-            <Grid item xs={12} md={4} key={feature.title}>
+            <Grid size={{ xs: 12, md: 4 }} key={feature.title}>
               <Card sx={{ height: '100%', p: 2.5, bgcolor: 'background.paper' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', mb: 2 }}>
@@ -406,7 +406,7 @@ const Home: React.FC = () => {
 
         <Paper sx={{ p: { xs: 3, md: 4 }, mb: 8 }}>
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Typography variant="h4" fontWeight={700} gutterBottom>
                 Campus Map Navigator
               </Typography>
@@ -455,7 +455,7 @@ const Home: React.FC = () => {
                 </Stack>
               </Box>
             </Grid>
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Box
                 sx={{
                   borderRadius: 3,
@@ -515,7 +515,7 @@ const Home: React.FC = () => {
       <Box sx={{ bgcolor: '#0f172a', color: 'white', py: 6 }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h6" fontWeight={700}>
                 Samadhaan
               </Typography>
@@ -523,7 +523,7 @@ const Home: React.FC = () => {
                 A modern complaint management system designed for Thapar University and beyond.
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6} sx={{ textAlign: { md: 'right' } }}>
+            <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { md: 'right' } }}>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                 &copy; {new Date().getFullYear()} Samadhaan. All rights reserved.
               </Typography>

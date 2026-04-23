@@ -16,7 +16,7 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
-export const ToastProvider: FC<{ children: ReactNode }> = ({ children }): JSX.Element => {
+export const ToastProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((message: string, type: ToastType = 'info') => {
