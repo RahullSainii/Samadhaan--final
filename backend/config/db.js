@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
+    if (!process.env.MONGO_URI || !process.env.MONGO_URI.trim()) {
+      throw new Error('MONGO_URI is not set. Please add it to your .env file.');
+    }
+    
     // Clean the connection string (remove any whitespace/newlines)
     let mongoURI = process.env.MONGO_URI.trim().replace(/\s+/g, '');
     
@@ -15,6 +19,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(mongoURI, options);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    return conn;
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
     
@@ -59,7 +64,9 @@ const connectDB = async () => {
       process.exit(1);
     }
   }
+  return null;
 };
 
 module.exports = connectDB;
+
 

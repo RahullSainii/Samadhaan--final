@@ -14,3 +14,4 @@ router.get('/all', authMiddleware, adminMiddleware, statsController.getAllStats)
 
 module.exports = router;
 
+

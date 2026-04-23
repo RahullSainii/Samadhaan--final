@@ -38,6 +38,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  refreshToken: String,
+  resetPinHash: String,
+  resetPinExpires: Date,
 }, {
   timestamps: true,
 });
@@ -58,4 +61,5 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 module.exports = mongoose.model('User', userSchema);
+
 

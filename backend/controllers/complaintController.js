@@ -1,5 +1,120 @@
 const Complaint = require('../models/Complaint');
 const { validationResult } = require('express-validator');
+const { analyzeComplaintSubmission } = require('../utils/complaintFraudDetector');
+
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_SIZE = 2 * 1024 * 1024; // 2MB
+
+const normalizeAttachments = (attachments) => {
+  if (!attachments) return [];
+  if (!Array.isArray(attachments)) {
+    throw new Error('Attachments must be an array');
+  }
+  if (attachments.length > MAX_ATTACHMENTS) {
+    throw new Error(`Maximum ${MAX_ATTACHMENTS} attachments allowed`);
+  }
+
+  return attachments.map((att, index) => {
+    if (!att || typeof att.data !== 'string') {
+      throw new Error(`Invalid attachment at position ${index + 1}`);
+    }
+
+    let type = typeof att.type === 'string' ? att.type : '';
+    let dataUri = att.data;
+    let base64 = att.data;
+
+    if (dataUri.startsWith('data:')) {
+      const match = dataUri.match(/^data:(.+);base64,(.*)$/);
+      if (!match) {
+        throw new Error(`Invalid attachment data at position ${index + 1}`);
+      }
+      type = type || match[1];
+      base64 = match[2];
+      dataUri = `data:${type};base64,${base64}`;
+    } else {
+      if (!type) {
+        throw new Error(`Attachment type is required at position ${index + 1}`);
+      }
+      dataUri = `data:${type};base64,${base64}`;
+    }
+
+    if (!type.startsWith('image/')) {
+      throw new Error(`Attachment ${index + 1} must be an image`);
+    }
+
+    const size = Buffer.from(base64, 'base64').length;
+    if (size > MAX_ATTACHMENT_SIZE) {
+      throw new Error(`Attachment ${index + 1} exceeds 2MB`);
+    }
+
+    return {
+      name: att.name || `attachment_${index + 1}`,
+      type,
+      size,
+      data: dataUri,
+    };
+  });
+};
+
+const formatComplaint = (complaint, viewerRole) => {
+  const isAnonymous = Boolean(complaint.isAnonymous);
+  const base = {
+    id: `#${String(complaint._id.toString().slice(-3)).padStart(3, '0')}`,
+    _id: complaint._id,
+    category: complaint.category,
+    description: complaint.description,
+    priority: complaint.priority,
+    status: complaint.status,
+    date: complaint.date.toISOString().split('T')[0],
+    createdAt: complaint.createdAt,
+    location: complaint.location || '',
+    isAnonymous,
+    handledBy: complaint.handledBy || '',
+    attachmentCount: complaint.attachments ? complaint.attachments.length : 0,
+    moderation: complaint.moderation
+      ? {
+          status: complaint.moderation.status || 'clean',
+          spamScore: complaint.moderation.spamScore || 0,
+          abusiveScore: complaint.moderation.abusiveScore || 0,
+          duplicateScore: complaint.moderation.duplicateScore || 0,
+          reasons: complaint.moderation.reasons || [],
+          duplicateComplaintIds: complaint.moderation.duplicateComplaintIds || [],
+          detectedAt: complaint.moderation.detectedAt || null,
+        }
+      : {
+          status: 'clean',
+          spamScore: 0,
+          abusiveScore: 0,
+          duplicateScore: 0,
+          reasons: [],
+          duplicateComplaintIds: [],
+          detectedAt: null,
+        },
+  };
+
+  if (viewerRole === 'Admin') {
+    if (isAnonymous) {
+      return {
+        ...base,
+        userId: null,
+        reportedBy: 'Anonymous',
+      };
+    }
+
+    return {
+      ...base,
+      userId: complaint.userId,
+      reportedBy: complaint.userId
+        ? `${complaint.userId.name || 'User'}${complaint.userId.email ? ` (${complaint.userId.email})` : ''}`
+        : 'User',
+    };
+  }
+
+  return {
+    ...base,
+    userId: complaint.userId,
+  };
+};
 
 // @desc    Submit a new complaint
 // @route   POST /api/complaints
@@ -16,7 +131,41 @@ exports.submitComplaint = async (req, res) => {
       });
     }
 
-    const { category, description, priority } = req.body;
+    const { category, description, priority, attachments, location, isAnonymous } = req.body;
+
+    let normalizedAttachments = [];
+    try {
+      normalizedAttachments = normalizeAttachments(attachments);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Invalid attachments',
+      });
+    }
+
+    const recentComplaints = await Complaint.find({
+      userId: req.user.id,
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    })
+      .select('_id category description location createdAt')
+      .sort({ createdAt: -1 })
+      .limit(15);
+
+    const moderation = analyzeComplaintSubmission({
+      category,
+      description,
+      location,
+      attachments: normalizedAttachments,
+      recentComplaints,
+    });
+
+    if (moderation.status === 'blocked') {
+      return res.status(422).json({
+        success: false,
+        message: 'Complaint blocked by AI fraud/spam filter. Please revise and resubmit.',
+        moderation,
+      });
+    }
 
     const complaint = await Complaint.create({
       category,
@@ -24,12 +173,19 @@ exports.submitComplaint = async (req, res) => {
       priority: priority || 'Medium',
       userId: req.user.id,
       date: new Date(),
+      attachments: normalizedAttachments,
+      location: location || '',
+      isAnonymous: Boolean(isAnonymous),
+      moderation,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Complaint submitted successfully',
-      data: complaint,
+      message:
+        moderation.status === 'flagged'
+          ? 'Complaint submitted and flagged for review'
+          : 'Complaint submitted successfully',
+      data: formatComplaint(complaint, req.user.role),
     });
   } catch (error) {
     res.status(500).json({
@@ -86,17 +242,9 @@ exports.getComplaints = async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Format response to match frontend expectations
-    const formattedComplaints = complaints.map((complaint, index) => ({
-      id: `#${String(complaint._id.toString().slice(-3)).padStart(3, '0')}`,
-      _id: complaint._id,
-      category: complaint.category,
-      description: complaint.description,
-      priority: complaint.priority,
-      status: complaint.status,
-      date: complaint.date.toISOString().split('T')[0],
-      userId: complaint.userId,
-      createdAt: complaint.createdAt,
-    }));
+    const formattedComplaints = complaints.map((complaint) =>
+      formatComplaint(complaint, req.user.role)
+    );
 
     res.status(200).json({
       success: true,
@@ -148,16 +296,9 @@ exports.getMyComplaints = async (req, res) => {
     const complaints = await Complaint.find(query)
       .sort({ createdAt: -1 });
 
-    const formattedComplaints = complaints.map((complaint) => ({
-      id: `#${String(complaint._id.toString().slice(-3)).padStart(3, '0')}`,
-      _id: complaint._id,
-      category: complaint.category,
-      description: complaint.description,
-      priority: complaint.priority,
-      status: complaint.status,
-      date: complaint.date.toISOString().split('T')[0],
-      createdAt: complaint.createdAt,
-    }));
+    const formattedComplaints = complaints.map((complaint) =>
+      formatComplaint(complaint, req.user.role)
+    );
 
     res.status(200).json({
       success: true,
@@ -194,18 +335,12 @@ exports.getComplaintById = async (req, res) => {
       });
     }
 
+    const formatted = formatComplaint(complaint, req.user.role);
     res.status(200).json({
       success: true,
       data: {
-        id: `#${String(complaint._id.toString().slice(-3)).padStart(3, '0')}`,
-        _id: complaint._id,
-        category: complaint.category,
-        description: complaint.description,
-        priority: complaint.priority,
-        status: complaint.status,
-        date: complaint.date.toISOString().split('T')[0],
-        userId: complaint.userId,
-        createdAt: complaint.createdAt,
+        ...formatted,
+        attachments: complaint.attachments || [],
       },
     });
   } catch (error) {
@@ -230,7 +365,14 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    const { status } = req.body;
+    const { status, handledBy } = req.body;
+
+    if (!status && !handledBy) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status or handledBy must be provided',
+      });
+    }
 
     const complaint = await Complaint.findById(req.params.id);
 
@@ -241,13 +383,18 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    complaint.status = status;
+    if (status) {
+      complaint.status = status;
+    }
+    if (handledBy !== undefined) {
+      complaint.handledBy = handledBy;
+    }
     await complaint.save();
 
     res.status(200).json({
       success: true,
-      message: `Complaint status updated to ${status}`,
-      data: complaint,
+      message: 'Complaint updated successfully',
+      data: formatComplaint(complaint, req.user.role),
     });
   } catch (error) {
     res.status(500).json({
@@ -256,4 +403,5 @@ exports.updateStatus = async (req, res) => {
     });
   }
 };
+
 

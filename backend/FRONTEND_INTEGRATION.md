@@ -622,3 +622,4 @@ if (window.location.pathname.includes('dashboard') || window.location.pathname.i
 - All dates are formatted to match frontend expectations
 - Status codes are checked before processing responses
 
+

@@ -3,7 +3,7 @@
  */
 exports.exportToCSV = (complaints) => {
   // CSV Header
-  const headers = ['Complaint ID', 'Category', 'Description', 'Priority', 'Status', 'Date', 'User Name', 'User Email'];
+  const headers = ['Complaint ID', 'Category', 'Description', 'Priority', 'Status', 'Date', 'Location', 'Anonymous', 'Handled By', 'User Name', 'User Email'];
   
   // Create CSV rows
   const rows = complaints.map(complaint => {
@@ -13,10 +13,13 @@ exports.exportToCSV = (complaints) => {
     const priority = complaint.priority || '';
     const status = complaint.status || '';
     const date = complaint.date ? new Date(complaint.date).toISOString().split('T')[0] : '';
+    const location = complaint.location || '';
+    const anonymous = complaint.isAnonymous ? 'Yes' : 'No';
+    const handledBy = complaint.handledBy || '';
     const userName = complaint.userId?.name || 'N/A';
     const userEmail = complaint.userId?.email || 'N/A';
     
-    return [id, category, description, priority, status, date, userName, userEmail].join(',');
+    return [id, category, description, priority, status, date, location, anonymous, handledBy, userName, userEmail].join(',');
   });
   
   // Combine header and rows
@@ -24,4 +27,5 @@ exports.exportToCSV = (complaints) => {
   
   return csv;
 };
+
 

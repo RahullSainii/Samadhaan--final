@@ -114,3 +114,4 @@ MONGO_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/samadhaan?r
 - Replace `cluster0.xxxxx.mongodb.net` with your cluster URL
 - Keep `?retryWrites=true&w=majority` at the end
 
+

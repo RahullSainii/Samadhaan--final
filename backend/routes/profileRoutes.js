@@ -50,3 +50,4 @@ router.put('/change-password', authMiddleware, changePasswordValidation, profile
 
 module.exports = router;
 
+

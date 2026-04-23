@@ -8,8 +8,50 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 // Validation rules
 const complaintValidation = [
   body('category')
-    .isIn(['Technical', 'Billing', 'Service', 'Infrastructure', 'Other'])
+    .isIn([
+      'Technical',
+      'Technical - LMS Issue',
+      'Technical - WebKiosk Down',
+      'Technical - E-Ticket Issue',
+      'Technical - Email Access',
+      'Technical - Wi-Fi/Network',
+      'Technical - Portal Login Issue',
+      'Technical - Software Installation',
+      'Technical - Hardware Fault',
+      'Technical - Lab System Issue',
+      'Technical - Other',
+      'Billing',
+      'Billing - Fee Payment',
+      'Billing - Receipt Correction',
+      'Billing - Scholarship/Refund',
+      'Billing - Hostel Fee',
+      'Billing - Library Fine',
+      'Billing - Other',
+      'Service',
+      'Service - Mess/Cafeteria',
+      'Service - Housekeeping',
+      'Service - Transport/Bus',
+      'Service - Security',
+      'Service - Medical',
+      'Service - Other',
+      'Infrastructure',
+      'Infrastructure - Classroom',
+      'Infrastructure - Lab',
+      'Infrastructure - Washroom',
+      'Infrastructure - Hostel Room',
+      'Infrastructure - Power/Electricity',
+      'Infrastructure - Water Supply',
+      'Infrastructure - Parking',
+      'Infrastructure - Other',
+      'Other',
+      'Other - Suggestion',
+      'Other - General Query',
+    ])
     .withMessage('Invalid category'),
+  body('location')
+    .trim()
+    .notEmpty()
+    .withMessage('Location is required'),
   body('description')
     .trim()
     .notEmpty()
@@ -20,12 +62,29 @@ const complaintValidation = [
     .optional()
     .isIn(['Low', 'Medium', 'High'])
     .withMessage('Invalid priority'),
+  body('isAnonymous')
+    .optional()
+    .isBoolean()
+    .withMessage('isAnonymous must be true or false')
+    .toBoolean(),
 ];
 
 const statusValidation = [
   body('status')
+    .optional()
     .isIn(['Pending', 'In Progress', 'Resolved'])
     .withMessage('Invalid status'),
+  body('handledBy')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Handled by must be between 2 and 100 characters'),
+  body().custom((value, { req }) => {
+    if (!req.body.status && !req.body.handledBy) {
+      throw new Error('Status or handledBy must be provided');
+    }
+    return true;
+  }),
 ];
 
 // Routes
@@ -36,4 +95,5 @@ router.get('/:id', authMiddleware, complaintController.getComplaintById);
 router.patch('/:id/status', authMiddleware, adminMiddleware, statusValidation, complaintController.updateStatus);
 
 module.exports = router;
+
 

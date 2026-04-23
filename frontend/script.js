@@ -10,6 +10,11 @@ function getToken() {
     return localStorage.getItem('token');
 }
 
+// Helper function to get refresh token
+function getRefreshToken() {
+    return localStorage.getItem('refreshToken');
+}
+
 // Helper function to check authentication
 function checkAuth() {
     const token = getToken();
@@ -18,6 +23,55 @@ function checkAuth() {
         return false;
     }
     return true;
+}
+
+// Refresh access token using refresh token
+async function refreshAccessToken() {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: refreshToken }),
+        });
+
+        const data = await response.json();
+        if (data.success && data.accessToken) {
+            localStorage.setItem('token', data.accessToken);
+            return true;
+        }
+    } catch (error) {
+        console.error('Refresh token error:', error);
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    return false;
+}
+
+// Fetch helper with auth + refresh retry
+async function fetchWithAuth(url, options = {}, retry = true) {
+    const headers = { ...(options.headers || {}) };
+    const token = getToken();
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401 && retry) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+            return fetchWithAuth(url, options, false);
+        }
+    }
+
+    return response;
 }
 
 // ===========================
@@ -53,10 +107,9 @@ document.addEventListener('DOMContentLoaded', function() {
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
-    const role = document.getElementById('loginRole').value;
 
     // Simple validation
-    if (!email || !password || !role) {
+    if (!email || !password) {
         showAlert('Please fill in all fields', 'danger');
         return;
     }
@@ -81,23 +134,15 @@ async function handleLogin() {
 
         if (data.success) {
             // Store token and user data
-            localStorage.setItem('token', data.data.token);
+            localStorage.setItem('token', data.data.accessToken);
+            localStorage.setItem('refreshToken', data.data.refreshToken);
             localStorage.setItem('user', JSON.stringify(data.data.user));
-            
-            // Verify role matches
-            const userRole = data.data.user.role.toLowerCase();
-            if (userRole !== role.toLowerCase()) {
-                showAlert('Role mismatch. Please select the correct role.', 'danger');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                return;
-            }
 
             showAlert('Login successful! Redirecting...', 'success');
             setTimeout(() => {
-                if (role === 'user') {
+                if (data.data.user.role === 'User') {
                     window.location.href = 'user_dashboard.html';
-                } else if (role === 'admin') {
+                } else if (data.data.user.role === 'Admin') {
                     window.location.href = 'admin_dashboard.html';
                 }
             }, 1500);
@@ -114,10 +159,9 @@ async function handleLogin() {
 async function handleRegister() {
     const email = document.getElementById('registerEmail').value;
     const password = document.getElementById('registerPassword').value;
-    const role = document.getElementById('registerRole').value;
 
     // Simple validation
-    if (!email || !password || !role) {
+    if (!email || !password) {
         showAlert('Please fill in all fields', 'danger');
         return;
     }
@@ -145,14 +189,14 @@ async function handleRegister() {
                 name: email.split('@')[0], // Use email prefix as name
                 email,
                 password,
-                role: role.charAt(0).toUpperCase() + role.slice(1), // Capitalize
             }),
         });
 
         const data = await response.json();
 
         if (data.success) {
-            localStorage.setItem('token', data.data.token);
+            localStorage.setItem('token', data.data.accessToken);
+            localStorage.setItem('refreshToken', data.data.refreshToken);
             localStorage.setItem('user', JSON.stringify(data.data.user));
             showAlert('Registration successful! You can now login.', 'success');
             document.getElementById('registerForm').reset();
@@ -222,19 +266,11 @@ async function handleComplaintSubmission() {
         return;
     }
 
-    const token = getToken();
-    if (!token) {
-        showAlert('Please login first', 'danger');
-        window.location.href = 'index.html';
-        return;
-    }
-
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({ category, priority, description }),
         });
@@ -257,18 +293,8 @@ async function handleComplaintSubmission() {
 
 // Load Complaints from Backend
 async function loadComplaints() {
-    const token = getToken();
-    if (!token) {
-        window.location.href = 'index.html';
-        return;
-    }
-
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints/my`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints/my`);
 
         const data = await response.json();
 
@@ -340,20 +366,11 @@ function initializeAdminDashboard() {
 
 // Update Statistics
 async function updateStatistics() {
-    const token = getToken();
-    if (!token) return;
-
     try {
         const [totalRes, pendingRes, resolvedRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/stats/total`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            }),
-            fetch(`${API_BASE_URL}/stats/pending`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            }),
-            fetch(`${API_BASE_URL}/stats/resolved`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            }),
+            fetchWithAuth(`${API_BASE_URL}/stats/total`),
+            fetchWithAuth(`${API_BASE_URL}/stats/pending`),
+            fetchWithAuth(`${API_BASE_URL}/stats/resolved`),
         ]);
 
         const totalData = await totalRes.json();
@@ -376,14 +393,9 @@ async function updateStatistics() {
 
 // Initialize Charts
 async function initializeCharts() {
-    const token = getToken();
-    if (!token) return;
-
     // Category Distribution Chart (Bar Chart)
     try {
-        const categoryRes = await fetch(`${API_BASE_URL}/stats/category-distribution`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
+        const categoryRes = await fetchWithAuth(`${API_BASE_URL}/stats/category-distribution`);
         const categoryData = await categoryRes.json();
 
         if (categoryData.success) {
@@ -434,9 +446,7 @@ async function initializeCharts() {
 
     // Status Distribution Chart (Doughnut Chart)
     try {
-        const statusRes = await fetch(`${API_BASE_URL}/stats/status-distribution`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
+        const statusRes = await fetchWithAuth(`${API_BASE_URL}/stats/status-distribution`);
         const statusData = await statusRes.json();
 
         if (statusData.success) {
@@ -478,18 +488,8 @@ async function initializeCharts() {
 
 // Load Admin Complaints
 async function loadAdminComplaints() {
-    const token = getToken();
-    if (!token) {
-        window.location.href = 'index.html';
-        return;
-    }
-
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints`);
 
         const data = await response.json();
 
@@ -509,7 +509,7 @@ async function loadAdminComplaints() {
                             <td>${complaint.description}</td>
                             <td><span class="badge ${getPriorityBadgeClass(complaint.priority)}">${complaint.priority}</span></td>
                             <td>
-                                <select class="form-select status-select" onchange="updateStatus(this, '${complaint._id}')">
+                                <select class="form-select status-select" data-old-value="${complaint.status}" onchange="updateStatus(this, '${complaint._id}')">
                                     <option value="Pending" ${complaint.status === 'Pending' ? 'selected' : ''}>Pending</option>
                                     <option value="In Progress" ${complaint.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                                     <option value="Resolved" ${complaint.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
@@ -535,14 +535,13 @@ async function loadAdminComplaints() {
 // Update Complaint Status
 async function updateStatus(selectElement, complaintId) {
     const newStatus = selectElement.value;
-    const token = getToken();
+    const oldValue = selectElement.getAttribute('data-old-value');
 
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints/${complaintId}/status`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints/${complaintId}/status`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({ status: newStatus }),
         });
@@ -551,12 +550,12 @@ async function updateStatus(selectElement, complaintId) {
 
         if (data.success) {
             showAlert(`Complaint status updated to ${newStatus}`, 'success');
+            selectElement.setAttribute('data-old-value', newStatus);
             updateStatistics();
             initializeCharts();
         } else {
             showAlert(data.message || 'Failed to update status', 'danger');
             // Revert select
-            const oldValue = selectElement.getAttribute('data-old-value');
             if (oldValue) selectElement.value = oldValue;
         }
     } catch (error) {
@@ -567,15 +566,8 @@ async function updateStatus(selectElement, complaintId) {
 
 // View Complaint Details
 async function viewDetails(complaintId) {
-    const token = getToken();
-    if (!token) return;
-
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints/${complaintId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints/${complaintId}`);
 
         const data = await response.json();
 
@@ -599,12 +591,19 @@ async function viewDetails(complaintId) {
 // Logout Function
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        showAlert('Logging out...', 'info');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1000);
+        const finishLogout = () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            showAlert('Logging out...', 'info');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        };
+
+        fetchWithAuth(`${API_BASE_URL}/auth/logout`, { method: 'POST' })
+            .catch(() => {})
+            .finally(finishLogout);
     }
 }
 
@@ -665,15 +664,8 @@ async function filterComplaints() {
     if (categoryFilter) params.append('category', categoryFilter);
     if (dateFilter) params.append('date', dateFilter);
     
-    const token = getToken();
-    if (!token) return;
-    
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints/my?${params.toString()}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints/my?${params.toString()}`);
         
         const data = await response.json();
         
@@ -726,15 +718,8 @@ async function filterAdminComplaints() {
     if (categoryFilter) params.append('category', categoryFilter);
     if (dateFilter) params.append('date', dateFilter);
     
-    const token = getToken();
-    if (!token) return;
-    
     try {
-        const response = await fetch(`${API_BASE_URL}/complaints?${params.toString()}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/complaints?${params.toString()}`);
         
         const data = await response.json();
         
@@ -754,7 +739,7 @@ async function filterAdminComplaints() {
                             <td>${complaint.description}</td>
                             <td><span class="badge ${getPriorityBadgeClass(complaint.priority)}">${complaint.priority}</span></td>
                             <td>
-                                <select class="form-select status-select" onchange="updateStatus(this, '${complaint._id}')">
+                                <select class="form-select status-select" data-old-value="${complaint.status}" onchange="updateStatus(this, '${complaint._id}')">
                                     <option value="Pending" ${complaint.status === 'Pending' ? 'selected' : ''}>Pending</option>
                                     <option value="In Progress" ${complaint.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                                     <option value="Resolved" ${complaint.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
@@ -969,15 +954,8 @@ window.showToast = showToast;
 
 // Export to CSV
 async function exportToCSV() {
-    const token = getToken();
-    if (!token) return;
-
     try {
-        const response = await fetch(`${API_BASE_URL}/export/csv`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/export/csv`);
 
         if (response.ok) {
             const blob = await response.blob();
@@ -1031,18 +1009,8 @@ window.toggleDarkMode = toggleDarkMode;
 
 // Load Profile
 async function loadProfile() {
-    const token = getToken();
-    if (!token) {
-        window.location.href = 'index.html';
-        return;
-    }
-
     try {
-        const response = await fetch(`${API_BASE_URL}/profile/me`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetchWithAuth(`${API_BASE_URL}/profile/me`);
 
         const data = await response.json();
 
@@ -1070,16 +1038,14 @@ document.addEventListener('DOMContentLoaded', function() {
         profileForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const token = getToken();
             const firstName = document.getElementById('firstName').value;
             const lastName = document.getElementById('lastName').value;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/profile/update`, {
+                const response = await fetchWithAuth(`${API_BASE_URL}/profile/update`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({
                         name: `${firstName} ${lastName}`.trim(),
@@ -1123,13 +1089,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const token = getToken();
             try {
-                const response = await fetch(`${API_BASE_URL}/profile/change-password`, {
+                const response = await fetchWithAuth(`${API_BASE_URL}/profile/change-password`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({
                         currentPassword: currentPwd,
@@ -1185,4 +1149,3 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-

@@ -1,0 +1,18 @@
+{
+  "name": "samadhaan-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Samadhaan Complaint Management System using Selenium",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx mocha tests/**/*.spec.js --timeout 60000 --reporter spec",
+    "test:show": "npx mocha tests/**/*.spec.js --timeout 60000 --reporter spec"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.17.0",
+    "chromedriver": "^147.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10"
+  }
+}

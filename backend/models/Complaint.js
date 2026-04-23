@@ -4,7 +4,45 @@ const complaintSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: ['Technical', 'Billing', 'Service', 'Infrastructure', 'Other'],
+    enum: [
+      'Technical',
+      'Technical - LMS Issue',
+      'Technical - WebKiosk Down',
+      'Technical - E-Ticket Issue',
+      'Technical - Email Access',
+      'Technical - Wi-Fi/Network',
+      'Technical - Portal Login Issue',
+      'Technical - Software Installation',
+      'Technical - Hardware Fault',
+      'Technical - Lab System Issue',
+      'Technical - Other',
+      'Billing',
+      'Billing - Fee Payment',
+      'Billing - Receipt Correction',
+      'Billing - Scholarship/Refund',
+      'Billing - Hostel Fee',
+      'Billing - Library Fine',
+      'Billing - Other',
+      'Service',
+      'Service - Mess/Cafeteria',
+      'Service - Housekeeping',
+      'Service - Transport/Bus',
+      'Service - Security',
+      'Service - Medical',
+      'Service - Other',
+      'Infrastructure',
+      'Infrastructure - Classroom',
+      'Infrastructure - Lab',
+      'Infrastructure - Washroom',
+      'Infrastructure - Hostel Room',
+      'Infrastructure - Power/Electricity',
+      'Infrastructure - Water Supply',
+      'Infrastructure - Parking',
+      'Infrastructure - Other',
+      'Other',
+      'Other - Suggestion',
+      'Other - General Query',
+    ],
   },
   description: {
     type: String,
@@ -27,10 +65,67 @@ const complaintSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  location: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  isAnonymous: {
+    type: Boolean,
+    default: false,
+  },
+  handledBy: {
+    type: String,
+    default: '',
+    trim: true,
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  attachments: [
+    {
+      name: { type: String, default: '' },
+      type: { type: String, default: '' },
+      size: { type: Number, default: 0 },
+      data: { type: String, default: '' },
+    },
+  ],
+  moderation: {
+    status: {
+      type: String,
+      enum: ['clean', 'flagged', 'blocked'],
+      default: 'clean',
+    },
+    spamScore: {
+      type: Number,
+      default: 0,
+    },
+    abusiveScore: {
+      type: Number,
+      default: 0,
+    },
+    duplicateScore: {
+      type: Number,
+      default: 0,
+    },
+    reasons: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    duplicateComplaintIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Complaint',
+      },
+    ],
+    detectedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
 }, {
   timestamps: true,
@@ -41,6 +136,10 @@ complaintSchema.index({ userId: 1, createdAt: -1 });
 complaintSchema.index({ status: 1 });
 complaintSchema.index({ category: 1 });
 complaintSchema.index({ date: -1 });
+complaintSchema.index({ location: 1 });
+complaintSchema.index({ userId: 1, category: 1, createdAt: -1 });
+complaintSchema.index({ 'moderation.status': 1, createdAt: -1 });
 
 module.exports = mongoose.model('Complaint', complaintSchema);
+
 
