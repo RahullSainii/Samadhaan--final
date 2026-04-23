@@ -2,8 +2,15 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
@@ -15,15 +22,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
+  Typography,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
@@ -36,7 +36,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { Download, RefreshCw, Eye } from 'lucide-react';
+import { Download, Eye, RefreshCw } from 'lucide-react';
 import { useToast, ToastProvider } from '../context/ToastContext';
 import ToastManager from '../context/ToastManager';
 import api from '../services/api';
@@ -46,44 +46,26 @@ const getModerationDisplay = (complaint: Complaint) => {
   const moderation = complaint.moderation;
 
   if (!moderation) {
-    return {
-      label: 'Not Scored',
-      color: 'default' as const,
-    };
+    return { label: 'Not Scored', color: 'default' as const };
   }
 
   if (moderation.status === 'blocked') {
-    return {
-      label: 'Blocked',
-      color: 'error' as const,
-    };
+    return { label: 'Blocked', color: 'error' as const };
   }
 
   if (moderation.status === 'flagged') {
     if (moderation.duplicateScore >= 70) {
-      return {
-        label: 'Possible Duplicate',
-        color: 'warning' as const,
-      };
+      return { label: 'Possible Duplicate', color: 'warning' as const };
     }
 
     if (moderation.abusiveScore >= 25) {
-      return {
-        label: 'Flagged Abuse',
-        color: 'error' as const,
-      };
+      return { label: 'Flagged Abuse', color: 'error' as const };
     }
 
-    return {
-      label: 'Flagged Spam',
-      color: 'warning' as const,
-    };
+    return { label: 'Flagged Spam', color: 'warning' as const };
   }
 
-  return {
-    label: 'Clean',
-    color: 'success' as const,
-  };
+  return { label: 'Clean', color: 'success' as const };
 };
 
 const AdminDashboard: React.FC = () => {
@@ -188,38 +170,80 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  const chartData = stats?.categoryDistribution.labels.map((label, index) => (
-    {
+  const chartData =
+    stats?.categoryDistribution.labels.map((label, index) => ({
       name: label,
       value: stats.categoryDistribution.data[index],
-    }
-  )) || [];
+    })) || [];
 
   const COLORS = ['#2563eb', '#7c3aed', '#10b981', '#f59e0b', '#ef4444'];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 0 20px rgba(0,0,0,0.05)' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, p: 2, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 0 10px rgba(0,0,0,0.05)' }}>
+    <Container
+      maxWidth="lg"
+      sx={{
+        py: 4,
+        backgroundColor: 'background.paper',
+        borderRadius: 2,
+        boxShadow: '0 0 20px rgba(0,0,0,0.05)',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+          p: 2,
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: '0 0 10px rgba(0,0,0,0.05)',
+        }}
+      >
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="h4" fontWeight={700} color="primary.main" gutterBottom>Admin Dashboard</Typography>
-          <Typography variant="body2" color="text.secondary">Oversee and manage all system complaints</Typography>
+          <Typography variant="h4" fontWeight={700} color="primary.main" gutterBottom>
+            Admin Dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Oversee and manage all system complaints
+          </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
-          <Button startIcon={<RefreshCw size={18} />} variant="outlined" onClick={fetchData} sx={{ backgroundColor: 'primary.main', color: 'white' }}>
+          <Button
+            startIcon={<RefreshCw size={18} />}
+            variant="outlined"
+            onClick={fetchData}
+            sx={{ backgroundColor: 'primary.main', color: 'white' }}
+          >
             Refresh Data
           </Button>
-          <IconButton aria-label="export" onClick={handleExport} sx={{ mr: 1, bgcolor: 'primary.main', color: 'white' }}>
+          <IconButton
+            aria-label="export"
+            onClick={handleExport}
+            sx={{ mr: 1, bgcolor: 'primary.main', color: 'white' }}
+          >
             <Download size={20} />
           </IconButton>
         </Stack>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4, p: 2, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 0 10px rgba(0,0,0,0.05)' }}>
+      <Grid
+        container
+        spacing={3}
+        sx={{
+          mb: 4,
+          p: 2,
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: '0 0 10px rgba(0,0,0,0.05)',
+        }}
+      >
         <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{ boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h6" fontWeight={700} color="primary.main" gutterBottom>Total Complaints</Typography>
+              <Typography variant="h6" fontWeight={700} color="primary.main" gutterBottom>
+                Total Complaints
+              </Typography>
               <Chip label={stats?.total ? `${stats.total}` : '0'} variant="outlined" color="success" sx={{ mt: 1 }} />
             </CardContent>
           </Card>
@@ -227,7 +251,9 @@ const AdminDashboard: React.FC = () => {
         <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{ boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h6" fontWeight={700} color="warning.main" gutterBottom>Pending Complaints</Typography>
+              <Typography variant="h6" fontWeight={700} color="warning.main" gutterBottom>
+                Pending Complaints
+              </Typography>
               <Chip label={stats?.pending ? `${stats.pending}` : '0'} variant="outlined" color="warning" sx={{ mt: 1 }} />
             </CardContent>
           </Card>
@@ -235,18 +261,30 @@ const AdminDashboard: React.FC = () => {
         <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{ boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h6" fontWeight={700} color="success.main" gutterBottom>Resolved Complaints</Typography>
+              <Typography variant="h6" fontWeight={700} color="success.main" gutterBottom>
+                Resolved Complaints
+              </Typography>
               <Chip label={stats?.resolved ? `${stats.resolved}` : '0'} variant="outlined" color="success" sx={{ mt: 1 }} />
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      <Grid container spacing={4} sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 0 10px rgba(0,0,0,0.05)' }}>
-        {/* Chart */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3, height: '400px', backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Category Distribution</Typography>
+      <Grid
+        container
+        spacing={4}
+        sx={{
+          p: 2,
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: '0 0 10px rgba(0,0,0,0.05)',
+        }}
+      >
+        <Grid size={{ xs: 12 }}>
+          <Paper sx={{ p: 3, height: 380, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              Category Distribution
+            </Typography>
             <ResponsiveContainer width="100%" height="90%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -263,23 +301,24 @@ const AdminDashboard: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Recent Activity / Table */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3, height: '400px', backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Recent Complaints</Typography>
-            <TableContainer sx={{ flexGrow: 1, overflowY: 'auto' }}>
-              <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+        <Grid size={{ xs: 12 }}>
+          <Paper sx={{ p: 3, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: '0 3px 5px rgba(0,0,0,0.1)' }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              Recent Complaints
+            </Typography>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table stickyHeader size="small" sx={{ minWidth: 980 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>ID</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Category</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Location</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Priority</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Status</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>AI Review</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Handler</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Anonymous</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>Details</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Priority</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>AI Review</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Handler</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Anonymous</TableCell>
+                    <TableCell sx={{ fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>Details</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -287,65 +326,70 @@ const AdminDashboard: React.FC = () => {
                     const moderationDisplay = getModerationDisplay(complaint);
 
                     return (
-                    <TableRow key={complaint._id} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
-                      <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>{complaint.id}</TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>{complaint.category}</TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>{complaint.location || '—'}</TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: complaint.priority === 'High' ? 'error.main' :
-                              complaint.priority === 'Medium' ? 'warning.main' : 'text.secondary',
-                            fontWeight: 600
-                          }}
-                        >
-                          {complaint.priority}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <Select
-                          size="small"
-                          value={complaint.status}
-                          onChange={(e) => handleStatusChange(complaint._id, e.target.value)}
-                          sx={{
-                            height: 28,
-                            fontSize: '0.75rem',
-                            '& .MuiSelect-select': { py: 0, borderRadius: '4px' }
-                          }}
-                        >
-                          <MenuItem value="Pending" sx={{ color: 'primary.main' }}>Pending</MenuItem>
-                          <MenuItem value="In Progress" sx={{ color: 'warning.main' }}>In Progress</MenuItem>
-                          <MenuItem value="Resolved" sx={{ color: 'success.main' }}>Resolved</MenuItem>
-                        </Select>
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <Chip
-                          size="small"
-                          label={moderationDisplay.label}
-                          color={moderationDisplay.color}
-                          variant={moderationDisplay.color === 'default' ? 'outlined' : 'filled'}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {complaint.handledBy || 'Unassigned'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <Chip
-                          size="small"
-                          label={complaint.isAnonymous ? 'Yes' : 'No'}
-                          color={complaint.isAnonymous ? 'warning' : 'success'}
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <IconButton size="small" onClick={() => openDetails(complaint._id)}>
-                          <Eye size={16} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
+                      <TableRow key={complaint._id} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
+                        <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{complaint.id}</TableCell>
+                        <TableCell sx={{ minWidth: 200 }}>
+                          <Typography variant="body2" fontWeight={600}>
+                            {complaint.category}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 180 }}>
+                          <Typography variant="body2">{complaint.location || '-'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color:
+                                complaint.priority === 'High'
+                                  ? 'error.main'
+                                  : complaint.priority === 'Medium'
+                                    ? 'warning.main'
+                                    : 'text.secondary',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {complaint.priority}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                          <Select
+                            size="small"
+                            value={complaint.status}
+                            onChange={(e) => handleStatusChange(complaint._id, e.target.value)}
+                            sx={{
+                              minWidth: 130,
+                              fontSize: '0.875rem',
+                              '& .MuiSelect-select': { py: 0.8 },
+                            }}
+                          >
+                            <MenuItem value="Pending">Pending</MenuItem>
+                            <MenuItem value="In Progress">In Progress</MenuItem>
+                            <MenuItem value="Resolved">Resolved</MenuItem>
+                          </Select>
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                          <Chip size="small" label={moderationDisplay.label} color={moderationDisplay.color} variant={moderationDisplay.color === 'default' ? 'outlined' : 'filled'} />
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 140 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                            {complaint.handledBy || 'Unassigned'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={complaint.isAnonymous ? 'Yes' : 'No'}
+                            color={complaint.isAnonymous ? 'warning' : 'success'}
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <IconButton size="small" onClick={() => openDetails(complaint._id)}>
+                            <Eye size={16} />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                 </TableBody>
@@ -370,7 +414,11 @@ const AdminDashboard: React.FC = () => {
                 <Chip label={selectedComplaint.priority} color="info" />
                 <Chip label={selectedComplaint.status} color="success" />
                 <Chip label={getModerationDisplay(selectedComplaint).label} color={getModerationDisplay(selectedComplaint).color} />
-                <Chip label={selectedComplaint.isAnonymous ? 'Anonymous' : 'Identified'} color={selectedComplaint.isAnonymous ? 'warning' : 'success'} variant="outlined" />
+                <Chip
+                  label={selectedComplaint.isAnonymous ? 'Anonymous' : 'Identified'}
+                  color={selectedComplaint.isAnonymous ? 'warning' : 'success'}
+                  variant="outlined"
+                />
               </Box>
 
               <Typography variant="subtitle2">AI Review</Typography>
@@ -389,20 +437,25 @@ const AdminDashboard: React.FC = () => {
                     Duplicate Score: <strong>{selectedComplaint.moderation?.duplicateScore ?? 0}</strong>
                   </Typography>
                   <Typography variant="body2">
-                    Reasons: <strong>{selectedComplaint.moderation?.reasons?.length ? selectedComplaint.moderation.reasons.join(', ') : 'No issues detected'}</strong>
+                    Reasons:{' '}
+                    <strong>
+                      {selectedComplaint.moderation?.reasons?.length
+                        ? selectedComplaint.moderation.reasons.join(', ')
+                        : 'No issues detected'}
+                    </strong>
                   </Typography>
                 </Stack>
               </Paper>
 
               <Typography variant="subtitle2">Location</Typography>
-              <Typography>{selectedComplaint.location || '—'}</Typography>
+              <Typography>{selectedComplaint.location || '-'}</Typography>
 
               <Typography variant="subtitle2">Description</Typography>
               <Typography>{selectedComplaint.description}</Typography>
 
               <Typography variant="subtitle2">Reported By</Typography>
               <Typography>
-                {selectedComplaint.isAnonymous ? 'Anonymous' : (selectedComplaint.reportedBy || 'User')}
+                {selectedComplaint.isAnonymous ? 'Anonymous' : selectedComplaint.reportedBy || 'User'}
               </Typography>
 
               <TextField
@@ -445,8 +498,12 @@ const AdminDashboard: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDetails} variant="outlined">Close</Button>
-          <Button onClick={saveHandler} variant="contained">Save Handler</Button>
+          <Button onClick={closeDetails} variant="outlined">
+            Close
+          </Button>
+          <Button onClick={saveHandler} variant="contained">
+            Save Handler
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
